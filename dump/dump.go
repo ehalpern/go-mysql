@@ -96,8 +96,9 @@ func (d *Dumper) Dump(w io.Writer) error {
 
 	args = append(args, fmt.Sprintf("--user=%s", d.User))
 	args = append(args, fmt.Sprintf("--password=%s", d.Password))
-
-	args = append(args, "--master-data")
+        
+        // -master-data does not work with RDS because it issues a ... which is not permitted. 
+	// args = append(args, "--master-data")
 	args = append(args, "--single-transaction")
 	args = append(args, "--skip-lock-tables")
 
