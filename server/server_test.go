@@ -11,7 +11,7 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/juju/errors"
-	mysql "github.com/siddontang/go-mysql/mysql"
+	mysql "github.com/ehalpern/go-mysql/mysql"
 	. "gopkg.in/check.v1"
 )
 

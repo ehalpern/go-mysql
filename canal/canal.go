@@ -11,11 +11,11 @@ import (
 	"sync"
 
 	"github.com/juju/errors"
-	"github.com/siddontang/go-mysql/client"
-	"github.com/siddontang/go-mysql/dump"
-	"github.com/siddontang/go-mysql/mysql"
-	"github.com/siddontang/go-mysql/replication"
-	"github.com/siddontang/go-mysql/schema"
+	"github.com/ehalpern/go-mysql/client"
+	"github.com/ehalpern/go-mysql/dump"
+	"github.com/ehalpern/go-mysql/mysql"
+	"github.com/ehalpern/go-mysql/replication"
+	"github.com/ehalpern/go-mysql/schema"
 	"github.com/siddontang/go/log"
 	"github.com/siddontang/go/sync2"
 )

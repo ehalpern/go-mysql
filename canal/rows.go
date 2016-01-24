@@ -2,7 +2,7 @@ package canal
 
 import (
 	"github.com/juju/errors"
-	"github.com/siddontang/go-mysql/schema"
+	"github.com/ehalpern/go-mysql/schema"
 )
 
 const (

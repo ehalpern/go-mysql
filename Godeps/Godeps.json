@@ -1,5 +1,5 @@
 {
-	"ImportPath": "github.com/siddontang/go-mysql",
+	"ImportPath": "github.com/ehalpern/go-mysql",
 	"GoVersion": "go1.5.2",
 	"Packages": [
 		"./..."

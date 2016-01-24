@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/juju/errors"
-	"github.com/siddontang/go-mysql/dump"
-	"github.com/siddontang/go-mysql/schema"
+	"github.com/ehalpern/go-mysql/dump"
+	"github.com/ehalpern/go-mysql/schema"
 	"github.com/siddontang/go/log"
 )
 

@@ -8,8 +8,8 @@ import (
 
 	"github.com/juju/errors"
 	"github.com/satori/go.uuid"
-	"github.com/siddontang/go-mysql/client"
-	. "github.com/siddontang/go-mysql/mysql"
+	"github.com/ehalpern/go-mysql/client"
+	. "github.com/ehalpern/go-mysql/mysql"
 )
 
 var (

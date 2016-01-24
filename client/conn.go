@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/juju/errors"
-	. "github.com/siddontang/go-mysql/mysql"
-	"github.com/siddontang/go-mysql/packet"
+	. "github.com/ehalpern/go-mysql/mysql"
+	"github.com/ehalpern/go-mysql/packet"
 )
 
 type Conn struct {
@@ -42,7 +42,7 @@ func Connect(addr string, user string, password string, dbName string) (*Conn, e
 	proto := getNetProto(addr)
 
 	c := new(Conn)
-
+	fmt.Printf("mysql %s %s:%s %s\n", addr, user, password, dbName)
 	var err error
 	conn, err := net.DialTimeout(proto, addr, 10*time.Second)
 	if err != nil {
