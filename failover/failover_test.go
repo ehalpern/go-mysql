@@ -34,22 +34,24 @@ func (s *failoverTestSuite) SetUpSuite(c *C) {
 	var err error
 	for i := 0; i < len(ports); i++ {
 		err = s.s[i].StopSlave()
-		c.Assert(err, IsNil)
+		if err != nil {
+			c.Fatal("Failed to stop slave; assuming it's not running so skipping test\n")
+		} else {
+			err = s.s[i].ResetSlaveALL()
+			c.Assert(err, IsNil)
 
-		err = s.s[i].ResetSlaveALL()
-		c.Assert(err, IsNil)
+			_, err = s.s[i].Execute(`SET GLOBAL BINLOG_FORMAT = "ROW"`)
+			c.Assert(err, IsNil)
 
-		_, err = s.s[i].Execute(`SET GLOBAL BINLOG_FORMAT = "ROW"`)
-		c.Assert(err, IsNil)
+			_, err = s.s[i].Execute("DROP TABLE IF EXISTS test.go_mysql_test")
+			c.Assert(err, IsNil)
 
-		_, err = s.s[i].Execute("DROP TABLE IF EXISTS test.go_mysql_test")
-		c.Assert(err, IsNil)
+			_, err = s.s[i].Execute("CREATE TABLE IF NOT EXISTS test.go_mysql_test (id INT AUTO_INCREMENT, name VARCHAR(256), PRIMARY KEY(id)) engine=innodb")
+			c.Assert(err, IsNil)
 
-		_, err = s.s[i].Execute("CREATE TABLE IF NOT EXISTS test.go_mysql_test (id INT AUTO_INCREMENT, name VARCHAR(256), PRIMARY KEY(id)) engine=innodb")
-		c.Assert(err, IsNil)
-
-		err = s.s[i].ResetMaster()
-		c.Assert(err, IsNil)
+			err = s.s[i].ResetMaster()
+			c.Assert(err, IsNil)
+		}
 	}
 }
 

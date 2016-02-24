@@ -294,6 +294,8 @@ func (r *Resultset) GetUint(row, column int) (uint64, error) {
 	switch v := d.(type) {
 	case uint64:
 		return v, nil
+	case uint8:
+		return uint64(v), nil
 	case int64:
 		return uint64(v), nil
 	case float64:
