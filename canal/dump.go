@@ -34,11 +34,13 @@ func (h *dumpParseHandler) Data(db string, table string, values []string) error 
 	}
 
 	vs := make([]interface{}, len(values))
-
+	log.Infof("Handling Data: %v", values)
 	for i, v := range values {
 		if v == "NULL" {
 			vs[i] = nil
-		} else if v[0] != '\'' {
+		} else if firstChar := v[0]; firstChar == '\'' || firstChar == '"' {
+			vs[i] = v[1 : len(v) - 1]
+		} else {
 			if tableInfo.Columns[i].Type == schema.TYPE_NUMBER {
 				n, err := strconv.ParseInt(v, 10, 64)
 				if err != nil {
@@ -57,8 +59,6 @@ func (h *dumpParseHandler) Data(db string, table string, values []string) error 
 				log.Errorf("parse row %v error, invalid type at %d, skip", values, i)
 				return dump.ErrSkip
 			}
-		} else {
-			vs[i] = v[1 : len(v)-1]
 		}
 	}
 

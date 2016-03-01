@@ -13,7 +13,7 @@ import (
 var addr = flag.String("addr", "127.0.0.1:3306", "MySQL addr")
 var user = flag.String("user", "root", "MySQL user")
 var password = flag.String("password", "", "MySQL password")
-var execution = flag.String("exec", "mysqldump", "mysqldump execution path")
+var execution = flag.String("exec", "mydumper", "mysqldump execution path")
 var output = flag.String("o", "", "dump output, empty for stdout")
 
 var dbs = flag.String("dbs", "", "dump databases, seperated by comma")

@@ -16,7 +16,7 @@ import (
 var host = flag.String("host", "127.0.0.1", "MySQL host")
 var port = flag.Int("port", 3306, "MySQL host")
 
-var execution = flag.String("exec", "mysqldump", "mysqldump execution path")
+var execution = flag.String("dump", "mydumper", "dump program execution path")
 
 func Test(t *testing.T) {
 	TestingT(t)

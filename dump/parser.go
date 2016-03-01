@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/juju/errors"
+	"github.com/siddontang/go/log"
 )
 
 var (
@@ -21,23 +22,21 @@ type ParseHandler interface {
 	Data(schema string, table string, values []string) error
 }
 
-var binlogExp *regexp.Regexp
-var useExp *regexp.Regexp
-var valuesExp *regexp.Regexp
-
-func init() {
-	binlogExp = regexp.MustCompile("^CHANGE MASTER TO MASTER_LOG_FILE='(.+)', MASTER_LOG_POS=(\\d+);")
-	useExp = regexp.MustCompile("^USE `(.+)`;")
-	valuesExp = regexp.MustCompile("^INSERT INTO `(.+)` VALUES \\((.+)\\);$")
-}
 
 // Parse the dump data with Dumper generate.
 // It can not parse all the data formats with mysqldump outputs
 func Parse(r io.Reader, h ParseHandler) error {
 	rb := bufio.NewReaderSize(r, 1024*16)
 
+	binlogExp := regexp.MustCompile("^CHANGE MASTER TO MASTER_LOG_FILE='(.+)', MASTER_LOG_POS=(\\d+);")
+	useExp := regexp.MustCompile("^USE `(.+)`;")
+	insertWithValuesExp := regexp.MustCompile("^INSERT INTO `(.+)` VALUES \\((.+)\\);")
+	insertExp := regexp.MustCompile("INSERT INTO `(.+)` VALUES")
+	valuesExp := regexp.MustCompile("^\\((.+)\\)[;,]")
+
 	var db string
 	var binlogParsed bool
+	var currentInsertTable string
 
 	for {
 		line, err := rb.ReadString('\n')
@@ -51,6 +50,7 @@ func Parse(r io.Reader, h ParseHandler) error {
 
 		if !binlogParsed {
 			if m := binlogExp.FindAllStringSubmatch(line, -1); len(m) == 1 {
+				log.Info("Parse binlog: %s", line)
 				name := m[0][1]
 				pos, err := strconv.ParseUint(m[0][2], 10, 64)
 				if err != nil {
@@ -65,19 +65,30 @@ func Parse(r io.Reader, h ParseHandler) error {
 			}
 		}
 
-		if m := useExp.FindAllStringSubmatch(line, -1); len(m) == 1 {
-			db = m[0][1]
-		}
-
-		if m := valuesExp.FindAllStringSubmatch(line, -1); len(m) == 1 {
-			table := m[0][1]
-
-			values, err := parseValues(m[0][2])
+		if m := useExp.FindStringSubmatch(line); len(m) == 2 {
+			db = m[1]
+		} else if m = insertWithValuesExp.FindStringSubmatch(line); len(m) == 3 {
+			log.Infof("Parse insert: %s", line)
+			table := m[1]
+			values, err := parseValues(m[2])
 			if err != nil {
 				return errors.Errorf("parse values %v err", line)
 			}
 
 			if err = h.Data(db, table, values); err != nil && err != ErrSkip {
+				return errors.Trace(err)
+			}
+		} else if m = insertExp.FindStringSubmatch(line); len(m) == 2 {
+			log.Infof("Parse insert start: %s", line)
+			currentInsertTable = m[1]
+		} else if m = valuesExp.FindStringSubmatch(line); len(m) == 2 {
+			log.Infof("Parse insert value: %s", line)
+			values, err := parseValues(m[1])
+			if err != nil {
+				return errors.Errorf("parse values %v err", line)
+			}
+
+			if err = h.Data(db, currentInsertTable, values); err != nil && err != ErrSkip {
 				return errors.Trace(err)
 			}
 		}
@@ -96,7 +107,7 @@ func parseValues(str string) ([]string, error) {
 
 	i := 0
 	for i < len(str) {
-		if str[i] != '\'' {
+		if firstChar := str[i]; firstChar != '\'' && firstChar != '"' {
 			// no string, read until comma
 			j := i + 1
 			for ; j < len(str) && str[j] != ','; j++ {
@@ -113,7 +124,7 @@ func parseValues(str string) ([]string, error) {
 					// skip escaped character
 					j += 2
 					continue
-				} else if str[j] == '\'' {
+				} else if str[j] == firstChar {
 					break
 				} else {
 					j++
