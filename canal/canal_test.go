@@ -77,6 +77,10 @@ func (h *testRowsEventHandler) Do(e *RowsEvent) error {
 	return nil
 }
 
+func (h *testRowsEventHandler) Complete() error {
+	return nil
+}
+
 func (h *testRowsEventHandler) String() string {
 	return "testRowsEventHandler"
 }

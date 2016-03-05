@@ -136,7 +136,7 @@ func (c *Canal) run() error {
 
 	if err := c.tryDump(); err != nil {
 		log.Errorf("canal dump mysql err: %v", err)
-		return errors.Trace(err)
+		return err
 	}
 
 	close(c.dumpDoneCh)

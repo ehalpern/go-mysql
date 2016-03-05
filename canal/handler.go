@@ -13,6 +13,7 @@ type RowsEventHandler interface {
 	// Handle RowsEvent, if return ErrHandleInterrupted, canal will
 	// stop the sync
 	Do(e *RowsEvent) error
+	Complete() error
 	String() string
 }
 

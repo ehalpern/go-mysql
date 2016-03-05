@@ -20,6 +20,8 @@ type ParseHandler interface {
 	BinLog(name string, pos uint64) error
 
 	Data(schema string, table string, values []string) error
+
+	Complete() error
 }
 
 
@@ -50,7 +52,7 @@ func Parse(r io.Reader, h ParseHandler) error {
 
 		if !binlogParsed {
 			if m := binlogExp.FindAllStringSubmatch(line, -1); len(m) == 1 {
-				log.Info("Parse binlog: %s", line)
+				log.Infof("Parse binlog: %s", line)
 				name := m[0][1]
 				pos, err := strconv.ParseUint(m[0][2], 10, 64)
 				if err != nil {
@@ -68,7 +70,7 @@ func Parse(r io.Reader, h ParseHandler) error {
 		if m := useExp.FindStringSubmatch(line); len(m) == 2 {
 			db = m[1]
 		} else if m = insertWithValuesExp.FindStringSubmatch(line); len(m) == 3 {
-			log.Infof("Parse insert: %s", line)
+			log.Debugf("Parse insert: %s", line)
 			table := m[1]
 			values, err := parseValues(m[2])
 			if err != nil {
@@ -79,10 +81,10 @@ func Parse(r io.Reader, h ParseHandler) error {
 				return errors.Trace(err)
 			}
 		} else if m = insertExp.FindStringSubmatch(line); len(m) == 2 {
-			log.Infof("Parse insert start: %s", line)
+			log.Debugf("Parse insert start: %s", line)
 			currentInsertTable = m[1]
 		} else if m = valuesExp.FindStringSubmatch(line); len(m) == 2 {
-			log.Infof("Parse insert value: %s", line)
+			log.Debugf("Parse insert value: %s", line)
 			values, err := parseValues(m[1])
 			if err != nil {
 				return errors.Errorf("parse values %v err", line)
@@ -93,8 +95,7 @@ func Parse(r io.Reader, h ParseHandler) error {
 			}
 		}
 	}
-
-	return nil
+	return h.Complete()
 }
 
 func parseValues(str string) ([]string, error) {

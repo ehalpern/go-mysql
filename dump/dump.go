@@ -150,7 +150,7 @@ func (d *Dumper) mysqldump(w io.Writer) error {
 
 	cmd.Stderr = d.ErrOut
 	cmd.Stdout = w
-	log.Infof("%+v", cmd)
+	log.Infof("Executing dump: %+v", cmd)
 
 	return cmd.Run()
 }
@@ -159,8 +159,7 @@ func (d *Dumper) mydumper(w io.Writer) error {
 	if dumpDir, err := ioutil.TempDir("", "mydumper"); err != nil {
 		return err
 	} else {
-		log.Infof("Writing mydumper output to %s\n", dumpDir)
-		defer os.RemoveAll(dumpDir)
+		//defer os.RemoveAll(dumpDir)
 
 		args := make([]string, 0, 16)
 		seps := strings.Split(d.Addr, ":")
@@ -179,6 +178,9 @@ func (d *Dumper) mydumper(w io.Writer) error {
 
 		// We only care about data
 		args = append(args, "--no-schemas")
+
+		//args = append(args, "--compress")
+		args = append(args, "--compress-protocol")
 
 		if len(d.IgnoreTables) != 0 {
 			fmt.Errorf("ignoreTables not supported when using mydumper")
@@ -199,7 +201,7 @@ func (d *Dumper) mydumper(w io.Writer) error {
 		cmd := exec.Command(d.ExecutionPath, args...)
 		cmd.Stderr = d.ErrOut
 		cmd.Stdout = os.Stdout
-		log.Infof("Executing: %+v\n", cmd)
+		log.Infof("Executing dump: %+v", cmd)
 		if err := cmd.Run(); err == nil {
 			err = d.parseDumpOuput(dumpDir, w)
 		}
@@ -230,6 +232,7 @@ func (d *Dumper) parseDumpOuput(dir string, w io.Writer) error {
 }
 
 func (d *Dumper) parseMetadataFile(meta string, w io.Writer) error {
+	log.Infof("Parsing: %s", meta)
 	if file, err := os.Open(meta); err != nil {
 		return err
 	} else {
@@ -256,7 +259,7 @@ func (d *Dumper) parseMetadataFile(meta string, w io.Writer) error {
 			return err
 		} else {
 			stmnt := fmt.Sprintf("CHANGE MASTER TO MASTER_LOG_FILE='%s', MASTER_LOG_POS=%s;\n", binLog, binLogPos)
-			log.Infof(stmnt)
+			log.Debug(stmnt)
 			_, err = fmt.Fprintf(w, stmnt)
 			return err
 		}
@@ -264,10 +267,11 @@ func (d *Dumper) parseMetadataFile(meta string, w io.Writer) error {
 }
 
 func (d *Dumper) parseDumpFile(dump string, w io.Writer) error {
+	log.Infof("Parsing: %s", dump)
 	lastSlash := strings.LastIndex(dump, "/") + 1
 	database := strings.Split(dump[lastSlash:len(dump)], ".")[0]
 	stmnt := fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s`;\n\nUSE `%s`;\n", database, database)
-	log.Infof(stmnt)
+	log.Debug(stmnt)
 	if _, err := fmt.Fprintf(w, stmnt); err != nil {
 		return err
 	} else if file, err := os.Open(dump); err != nil {
@@ -275,25 +279,31 @@ func (d *Dumper) parseDumpFile(dump string, w io.Writer) error {
 	} else {
 		defer file.Close()
 		scanner := bufio.NewScanner(file)
+		scanner.Buffer(make([]byte, 1024 * 1024), 1024 * 1024)
 		insertExp := regexp.MustCompile("^INSERT INTO `.+` VALUES$")
 		valuesExp := regexp.MustCompile("^\\(.+\\)[;,]$")
 
+		n := 0
+
 		for scanner.Scan() {
+			n = n + 1
+			if n % 10000 == 0 {
+				log.Infof("%d lines parsed ", n)
+			}
 			line := scanner.Text()
 			if insertExp.FindString(line) != "" {
 				stmnt := fmt.Sprintf("%s\n", line)
-				log.Infof(stmnt)
 				_, err = fmt.Fprintf(w, stmnt)
 			} else if valuesExp.FindString(line) != "" {
 				stmnt := fmt.Sprintf("%s\n", line)
-				log.Infof(stmnt)
 				_, err = fmt.Fprintf(w, stmnt)
 			}
 			if err != nil {
+				log.Errorf("Failed after %d lines parsed due to %v", n, err)
 				return err
 			}
 		}
-
+		log.Infof("Parsing completed with %d lines parsed", n)
 		return scanner.Err()
 	}
 }

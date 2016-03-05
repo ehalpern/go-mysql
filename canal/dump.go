@@ -34,7 +34,7 @@ func (h *dumpParseHandler) Data(db string, table string, values []string) error 
 	}
 
 	vs := make([]interface{}, len(values))
-	log.Infof("Handling Data: %v", values)
+	log.Debugf("Handling Data: %v", values)
 	for i, v := range values {
 		if v == "NULL" {
 			vs[i] = nil
@@ -65,6 +65,16 @@ func (h *dumpParseHandler) Data(db string, table string, values []string) error 
 	events := newRowsEvent(tableInfo, InsertAction, [][]interface{}{vs})
 	return h.c.travelRowsEventHandler(events)
 }
+
+func (h *dumpParseHandler) Complete() error {
+	for _, handler := range h.c.rsHandlers {
+		if err := handler.Complete(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 
 func (c *Canal) AddDumpDatabases(dbs ...string) {
 	if c.dumper == nil {
