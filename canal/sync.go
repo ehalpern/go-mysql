@@ -19,13 +19,20 @@ func (c *Canal) startSyncBinlog() error {
 		return errors.Errorf("start sync replication at %v error %v", pos, err)
 	}
 
-	timeout := time.Second
+	originalTimeout := time.Second
+	timeout := originalTimeout
 	forceSavePos := false
 	for {
 		ev, err := s.GetEventTimeout(timeout)
 		if err != nil && err != replication.ErrGetEventTimeout {
 			return errors.Trace(err)
 		} else if err == replication.ErrGetEventTimeout {
+			if timeout == 2 * originalTimeout {
+				log.Infof("Flushing event handlers since sync has gone idle")
+				if err := c.flushEventHandlers(); err != nil {
+					log.Warnf("Error occurred during flush: %v", err)
+				}
+			}
 			timeout = 2 * timeout
 			continue
 		}

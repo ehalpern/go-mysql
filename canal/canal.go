@@ -138,9 +138,10 @@ func (c *Canal) run() error {
 		log.Errorf("canal dump mysql err: %v", err)
 		return err
 	}
-
+	log.Infof("Finished dump")
 	close(c.dumpDoneCh)
 
+	log.Infof("Staring sync")
 	if err := c.startSyncBinlog(); err != nil {
 		if !c.isClosed() {
 			log.Errorf("canal start sync binlog err: %v", err)

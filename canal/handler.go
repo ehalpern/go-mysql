@@ -39,3 +39,20 @@ func (c *Canal) travelRowsEventHandler(e *RowsEvent) error {
 	}
 	return nil
 }
+
+func (c *Canal) flushEventHandlers() error {
+	c.rsLock.Lock()
+	defer c.rsLock.Unlock()
+
+	var err error
+	for _, h := range c.rsHandlers {
+		if err = h.Complete(); err != nil && err != ErrHandleInterrupted {
+			log.Errorf("Complete %v err: %v", h, err)
+		} else if err == ErrHandleInterrupted {
+			log.Errorf("Complete %v err, interrupted", h)
+			return ErrHandleInterrupted
+		}
+	}
+	return nil
+}
+
