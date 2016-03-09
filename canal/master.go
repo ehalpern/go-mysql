@@ -34,6 +34,7 @@ func loadMasterInfo(name string) (*masterInfo, error) {
 	if err != nil && !os.IsNotExist(err) {
 		return nil, errors.Trace(err)
 	} else if os.IsNotExist(err) {
+		log.Infof("No MasterInfo recorded at %v", name)
 		return &m, nil
 	}
 	defer f.Close()

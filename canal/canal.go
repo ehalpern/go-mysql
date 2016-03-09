@@ -144,7 +144,8 @@ func (c *Canal) run() error {
 	log.Infof("Staring sync")
 	if err := c.startSyncBinlog(); err != nil {
 		if !c.isClosed() {
-			log.Errorf("canal start sync binlog err: %v", err)
+			log.Errorf("Canal start sync binlog err: %v", err)
+
 		}
 		return errors.Trace(err)
 	}
