@@ -48,7 +48,10 @@ func Parse(r io.Reader, h ParseHandler) error {
 			break
 		}
 
-		line = line[0 : len(line)-1]
+		if firstChar := line[0]; firstChar == '"' || firstChar == '\'' {
+			// remove quotes
+			line = line[0 : len(line)-1]
+		}
 
 		if !binlogParsed {
 			if m := binlogExp.FindAllStringSubmatch(line, -1); len(m) == 1 {

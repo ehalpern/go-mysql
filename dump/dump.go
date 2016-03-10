@@ -181,6 +181,7 @@ func (d *Dumper) mydumper(w io.Writer) error {
 
 		//args = append(args, "--compress")
 		args = append(args, "--compress-protocol")
+		args = append(args, fmt.Sprintf("--long-query-guard=%d", 2000))
 
 		if len(d.IgnoreTables) != 0 {
 			fmt.Errorf("ignoreTables not supported when using mydumper")
@@ -293,13 +294,13 @@ func (d *Dumper) parseDumpFile(dump string, w io.Writer) error {
 			line := scanner.Text()
 			if insertExp.FindString(line) != "" {
 				stmnt := fmt.Sprintf("%s\n", line)
-				_, err = fmt.Fprintf(w, stmnt)
+				_, err = w.Write([]byte(stmnt))
 			} else if valuesExp.FindString(line) != "" {
 				stmnt := fmt.Sprintf("%s\n", line)
-				_, err = fmt.Fprintf(w, stmnt)
+				_, err = w.Write([]byte(stmnt))
 			}
 			if err != nil {
-				log.Errorf("Failed after %d lines parsed due to %v", n, err)
+				log.Errorf("Failed after %d lines parsed due to %v: %v", n, err, line)
 				return err
 			}
 		}

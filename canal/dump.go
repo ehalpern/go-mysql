@@ -56,7 +56,7 @@ func (h *dumpParseHandler) Data(db string, table string, values []string) error 
 				}
 				vs[i] = f
 			} else {
-				log.Errorf("parse row %v error, invalid type at %d, skip", values, i)
+				log.Errorf("parse row %v at %d err: invalid type %v for value %v, skip", values, i, tableInfo.Columns[i].Type, v)
 				return dump.ErrSkip
 			}
 		}
