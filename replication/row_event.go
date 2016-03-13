@@ -12,7 +12,6 @@ import (
 	"github.com/juju/errors"
 	. "github.com/ehalpern/go-mysql/mysql"
 	"github.com/siddontang/go/hack"
-	"github.com/siddontang/go/log"
 )
 
 type TableMapEvent struct {
