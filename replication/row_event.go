@@ -12,6 +12,7 @@ import (
 	"github.com/juju/errors"
 	. "github.com/ehalpern/go-mysql/mysql"
 	"github.com/siddontang/go/hack"
+"github.com/siddontang/go/log"
 )
 
 type TableMapEvent struct {
@@ -257,20 +258,25 @@ func (e *RowsEvent) Decode(data []byte) error {
 	var err error
 
 	// ... repeat rows until event-end
+	log.Infof("Decoding rows pos: %d, len: %d", pos, len(data))
 	for pos < len(data) {
 		if n, err = e.decodeRows(data[pos:], e.Table, e.ColumnBitmap1); err != nil {
+			log.Infof("Decoding rows failed %v", err)
 			return errors.Trace(err)
 		}
 		pos += n
 
 		if e.needBitmap2 {
+			log.Infof("Decoding 2nd bitmap")
 			if n, err = e.decodeRows(data[pos:], e.Table, e.ColumnBitmap2); err != nil {
+				log.Infof("Decoding 2nd bitmap failed %v", err)
 				return errors.Trace(err)
 			}
 			pos += n
+			log.Infof("Decoding 2nd bitmap succeeded pos %d", pos)
 		}
 	}
-
+	log.Infof("Rows decoded")
 	return nil
 }
 
@@ -304,7 +310,7 @@ func (e *RowsEvent) decodeRows(data []byte, table *TableMapEvent, bitmap []byte)
 		row[i], n, err = e.decodeValue(data[pos:], table.ColumnType[i], table.ColumnMeta[i])
 
 		if err != nil {
-			return 0, nil
+			return 0, err
 		}
 		pos += n
 
@@ -435,6 +441,11 @@ func (e *RowsEvent) decodeValue(data []byte, tp byte, meta uint16) (v interface{
 
 		v, err = decodeBit(data, int(nbits), n)
 	case MYSQL_TYPE_BLOB:
+	// Warning: GEOMETRY seems to be stored using that same format as blob.
+	// This was determined by reverse engineering rather than inpecting
+	// the MySQL source. This is known to work for MYSQL >= 5.6
+	// where meta == 4, but hasn't been tested on other versions.
+	case MYSQL_TYPE_GEOMETRY:
 		switch meta {
 		case 1:
 			length = int(data[0])
