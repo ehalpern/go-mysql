@@ -186,12 +186,12 @@ func (p *BinlogParser) parseEvent(h *EventHeader, data []byte) (Event, error) {
 		}
 	}
 
-	log.Infof("parser decoding %v", h.EventType)
+	log.Debugf("parser decoding %v", h.EventType)
 	if err := e.Decode(data); err != nil {
-		log.Infof("parser decoding %v failed %v", h.EventType, err)
+		log.Debugf("parser decoding %v failed %v", h.EventType, err)
 		return nil, &EventError{h, err.Error(), data}
 	}
-	log.Infof("parser decoding %v succeeded %+v", h.EventType, e)
+	log.Debugf("parser decoding %v succeeded %+v", h.EventType, e)
 
 	if te, ok := e.(*TableMapEvent); ok {
 		p.tables[te.TableID] = te
@@ -210,9 +210,8 @@ func (p *BinlogParser) parseEvent(h *EventHeader, data []byte) (Event, error) {
 
 func (p *BinlogParser) parse(data []byte) (*BinlogEvent, error) {
 	rawData := data
-    log.Infof("parser.parse: header")
 	h, err := p.parseHeader(data)
-	log.Infof("parser.parse: header: %+v", h)
+	log.Debugf("parser.parse: header: %+v", h)
 
 	if err != nil {
 		return nil, err
@@ -225,9 +224,8 @@ func (p *BinlogParser) parse(data []byte) (*BinlogEvent, error) {
 		return nil, fmt.Errorf("invalid data size %d in event %s, less event length %d", len(data), h.EventType, eventLen)
 	}
 
-	log.Infof("parser.parse: event")
 	e, err := p.parseEvent(h, data)
-	log.Infof("parser.parse: event: %+v", e)
+	log.Debugf("parser.parse: event: %+v", e)
 	if err != nil {
 		return nil, err
 	}

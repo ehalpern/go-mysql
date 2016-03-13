@@ -12,7 +12,7 @@ import (
 	"github.com/juju/errors"
 	. "github.com/ehalpern/go-mysql/mysql"
 	"github.com/siddontang/go/hack"
-"github.com/siddontang/go/log"
+	"github.com/siddontang/go/log"
 )
 
 type TableMapEvent struct {
@@ -258,25 +258,19 @@ func (e *RowsEvent) Decode(data []byte) error {
 	var err error
 
 	// ... repeat rows until event-end
-	log.Infof("Decoding rows pos: %d, len: %d", pos, len(data))
 	for pos < len(data) {
 		if n, err = e.decodeRows(data[pos:], e.Table, e.ColumnBitmap1); err != nil {
-			log.Infof("Decoding rows failed %v", err)
 			return errors.Trace(err)
 		}
 		pos += n
 
 		if e.needBitmap2 {
-			log.Infof("Decoding 2nd bitmap")
 			if n, err = e.decodeRows(data[pos:], e.Table, e.ColumnBitmap2); err != nil {
-				log.Infof("Decoding 2nd bitmap failed %v", err)
 				return errors.Trace(err)
 			}
 			pos += n
-			log.Infof("Decoding 2nd bitmap succeeded pos %d", pos)
 		}
 	}
-	log.Infof("Rows decoded")
 	return nil
 }
 
