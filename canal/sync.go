@@ -7,12 +7,13 @@ import (
 	"github.com/ehalpern/go-mysql/mysql"
 	"github.com/ehalpern/go-mysql/replication"
 	"github.com/siddontang/go/log"
+	//"regexp"
 )
 
 func (c *Canal) startSyncBinlog() error {
 	pos := mysql.Position{c.master.Name, c.master.Position}
 
-	log.Infof("start sync binlog at %v", pos)
+	//log.Infof("start sync binlog at %v", pos)
 
 	s, err := c.syncer.StartSync(pos)
 	if err != nil {
@@ -44,6 +45,7 @@ func (c *Canal) startSyncBinlog() error {
 
 		forceSavePos = false
 
+		log.Infof("syncing %v", ev)
 		switch e := ev.Event.(type) {
 		case *replication.RotateEvent:
 			pos.Name = string(e.NextLogName)
@@ -54,12 +56,17 @@ func (c *Canal) startSyncBinlog() error {
 		case *replication.RowsEvent:
 			// we only focus row based event
 			if err = c.handleRowsEvent(ev); err != nil {
-				log.Errorf("handle rows event error %v", err)
+				log.Errorf("Error handling rows event: %v", err)
+				return errors.Trace(err)
+			}
+		case *replication.QueryEvent:
+			if err = c.handleQueryEvent(ev); err != nil {
+				log.Errorf("Error handling rows event: %v", err)
 				return errors.Trace(err)
 			}
 		default:
+			log.Infof("Ignored event: %v", e)
 		}
-
 		c.master.Update(pos.Name, pos.Pos)
 		c.master.Save(forceSavePos)
 	}
@@ -93,6 +100,31 @@ func (c *Canal) handleRowsEvent(e *replication.BinlogEvent) error {
 	return c.travelRowsEventHandler(events)
 }
 
+func (c *Canal) handleQueryEvent(e *replication.BinlogEvent) error {
+	ev := e.Event.(*replication.QueryEvent)
+	schema := string(ev.Schema)
+	query, err := replication.ParseQuery(string(ev.Query))
+	log.Infof("query parsed: %v, %v", query, err)
+	if err == replication.ErrIgnored {
+		return nil
+	} else {
+		table, err := c.GetTable(schema, query.Table)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		switch query.Operation {
+		case replication.ADD:
+			table.AddColumn(query.Column, query.Type, query.Extra)
+			log.Info("Adding new column %v %v to %v.%v", query.Column, query.Type, schema, query.Table)
+			break;
+		case replication.MODIFY:
+		case replication.DELETE:
+		default:
+		}
+		return nil
+	}
+}
+
 func (c *Canal) WaitUntilPos(pos mysql.Position, timeout int) error {
 	if timeout <= 0 {
 		timeout = 60
@@ -100,11 +132,12 @@ func (c *Canal) WaitUntilPos(pos mysql.Position, timeout int) error {
 
 	timer := time.NewTimer(time.Duration(timeout) * time.Second)
 	for {
+		curpos := c.master.Pos()
 		select {
 		case <-timer.C:
-			return errors.Errorf("wait position %v err", pos)
+			return errors.Errorf("timed out waiting for position %v; only reached %v", pos)
 		default:
-			curpos := c.master.Pos()
+			curpos = c.master.Pos()
 			if curpos.Compare(pos) >= 0 {
 				return nil
 			} else {
