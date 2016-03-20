@@ -36,6 +36,8 @@ func (s *canalTestSuite) SetUpSuite(c *C) {
 	s.c, err = NewCanal(cfg)
 	c.Assert(err, IsNil)
 
+	s.execute(c, "DROP TABLE test.canal_test")
+
 	sql := `
         CREATE TABLE IF NOT EXISTS test.canal_test (
             id int AUTO_INCREMENT,
@@ -94,4 +96,18 @@ func (s *canalTestSuite) TestCanal(c *C) {
 
 	err := s.c.CatchMasterPos(100)
 	c.Assert(err, IsNil)
+}
+
+func (s *canalTestSuite) TestSchemaChange(c *C) {
+	<-s.c.WaitDumpDone()
+
+	//s.execute(c, "USE test")
+	s.execute(c, "ALTER TABLE test.canal_test ADD new VARCHAR(256) DEFAULT 'not-set'")
+	s.execute(c, "INSERT INTO test.canal_test (`name`, `new`) VALUES ('20', 'set')")
+
+	err := s.c.CatchMasterPos(100)
+	c.Assert(err, IsNil)
+	table, err := s.c.GetTable("test", "canal_test")
+	c.Assert(err, IsNil)
+	c.Assert(3, Equals, len(table.Columns))
 }

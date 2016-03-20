@@ -83,6 +83,7 @@ const (
 
 type AlterTableQuery struct {
 	String string
+	Schema string // "" if using the current schema
 	Table string
 	Operation AlterOp
 	Column string
@@ -100,7 +101,7 @@ func ParseQuery(query string) (*AlterTableQuery, error) {
 			return parseAlterTable(scanner)
 		}
 	default:
-		log.Infof("Ignoring query starging with: %v", scanner.Text())
+		log.Infof("Ignoring query starting with: %v", scanner.Text())
 		return nil, ErrIgnored
 	}
 	return nil, errors.NotValidf("Unrecognized query '%v'", query)
@@ -109,6 +110,10 @@ func ParseQuery(query string) (*AlterTableQuery, error) {
 func parseAlterTable(scanner *bufio.Scanner) (*AlterTableQuery, error) {
 	query := new(AlterTableQuery)
 	scanner.Scan(); query.Table = scanner.Text()
+	if split := strings.Split(query.Table, "."); len(split) == 2 {
+		query.Schema = split[0]
+		query.Table = split[1]
+	}
 	scanner.Scan(); query.Operation = AlterOp(strings.ToUpper(scanner.Text()))
 	switch query.Operation {
 	case ADD, MODIFY, DELETE:

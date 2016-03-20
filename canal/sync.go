@@ -65,7 +65,7 @@ func (c *Canal) startSyncBinlog() error {
 				return errors.Trace(err)
 			}
 		default:
-			log.Infof("Ignored event: %v", e)
+			log.Infof("Ignored event: %+v", e)
 		}
 		c.master.Update(pos.Name, pos.Pos)
 		c.master.Save(forceSavePos)
@@ -102,12 +102,16 @@ func (c *Canal) handleRowsEvent(e *replication.BinlogEvent) error {
 
 func (c *Canal) handleQueryEvent(e *replication.BinlogEvent) error {
 	ev := e.Event.(*replication.QueryEvent)
-	schema := string(ev.Schema)
 	query, err := replication.ParseQuery(string(ev.Query))
 	log.Infof("query parsed: %v, %v", query, err)
 	if err == replication.ErrIgnored {
 		return nil
 	} else {
+		schema := string(ev.Schema)
+		if query.Schema != "" {
+			// Schema overridden in query
+			schema = query.Schema
+		}
 		table, err := c.GetTable(schema, query.Table)
 		if err != nil {
 			return errors.Trace(err)
