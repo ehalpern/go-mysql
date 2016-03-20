@@ -110,6 +110,8 @@ func ParseQuery(query string) (*AlterTableQuery, error) {
 func parseAlterTable(scanner *bufio.Scanner) (*AlterTableQuery, error) {
 	query := new(AlterTableQuery)
 	scanner.Scan(); query.Table = scanner.Text()
+	// Handle <schema>.<table>. Note this doesn't properly handle case where table is
+	// quoted and '.' does not indicate a schema prefix
 	if split := strings.Split(query.Table, "."); len(split) == 2 {
 		query.Schema = split[0]
 		query.Table = split[1]
