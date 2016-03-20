@@ -6,6 +6,8 @@ import (
 	"strings"
 	"github.com/siddontang/go/log"
 	"github.com/juju/errors"
+	"unicode/utf8"
+	"unicode"
 )
 
 var (
@@ -16,28 +18,60 @@ var (
 func NewQuotedScanner(r io.Reader) *bufio.Scanner {
 	scanner := bufio.NewScanner(r)
 	split := func(data []byte, atEOF bool) (advance int, token []byte, err error) {
-		advance, token, err = bufio.ScanWords(data, atEOF)
-		if err == nil && token != nil {
-			firstChar := token[0]
-			switch (firstChar) {
-			case '\'', '"', '`':
-				n := strings.Index(string(data[advance:]), string(firstChar))
-				if n == -1 {
-					token = append(token, data[advance:]...)
-					advance = len(token)
-				} else {
-					log.Debugf("token:'%v', advance: %d, data: '%v'", string(token), advance, string(data))
-					token = append(token[1:], data[advance - 1:advance + n]...)
-					advance = advance + n
-				}
-			default:
-				// nothing to do
+		// Skip leading spaces.
+		start := 0
+		for width := 0; start < len(data); start += width {
+			var r rune
+			r, width = utf8.DecodeRune(data[start:])
+			if !unicode.IsSpace(r) {
+				break
 			}
 		}
-		return
+
+		// Does word start with a quote?
+		quote, width := utf8.DecodeRune(data[start:])
+		if IsQuote(quote) {
+			log.Debugf("Quote detected '%c', advancing %d", quote, width)
+			start = start + width
+		} else {
+			quote = 0
+		}
+
+		// Scan until space, marking end of word.
+		for width, i := 0, start; i < len(data); i += width {
+			var r rune
+			r, width = utf8.DecodeRune(data[i:])
+			if quote == 0 {
+				if unicode.IsSpace(r) {
+					return i + width, data[start:i], nil
+				}
+			} else {
+				// Look for ending quote
+				// BUG: need to implement escape handling
+				if r == quote {
+					log.Debugf("Found end quote %d chars after start", i)
+					return i + width, data[start:i], nil
+				}
+			}
+		}
+		// If we're at EOF, we have a final, non-empty, non-terminated word. Return it.
+		if atEOF && len(data) > start {
+			return len(data), data[start:], nil
+		}
+		// Request more data.
+		return start, nil, nil
 	}
 	scanner.Split(split)
 	return scanner
+}
+
+func IsQuote(r rune) bool {
+	switch r {
+	case '\'', '"', '`':
+		return true
+	default:
+		return false
+	}
 }
 
 type AlterOp string
@@ -66,6 +100,7 @@ func ParseQuery(query string) (*AlterTableQuery, error) {
 			return parseAlterTable(scanner)
 		}
 	default:
+		log.Infof("Ignoring query starging with: %v", scanner.Text())
 		return nil, ErrIgnored
 	}
 	return nil, errors.NotValidf("Unrecognized query '%v'", query)
@@ -84,10 +119,10 @@ func parseAlterTable(scanner *bufio.Scanner) (*AlterTableQuery, error) {
 	if (query.Column == "") {
 		return nil, errors.NotValidf("Missing column name in '%v'", scanner)
 	}
-	scanner.Scan(); query.Type = scanner.Text()
+	scanner.Scan(); query.Type = strings.ToUpper(scanner.Text())
 	if (query.Type == "") {
 		return nil, errors.NotValidf("Missing column type in '%v'", scanner)
 	}
-	scanner.Scan(); query.Type = scanner.Text()
+	scanner.Scan(); query.Extra = strings.ToUpper(scanner.Text())
 	return query, nil
 }

@@ -277,9 +277,9 @@ func (t *testSyncerSuite) TestMysqlBinlogCodec(c *C) {
 		return nil
 	}
 
-	err = p.ParseFile("./var/mysql.000001", 0, f)
+	err = p.ParseFile("./var/mysql-bin.000001", 0, f)
 	c.Assert(err, IsNil)
 
-	err = p.ParseFile("./var/mysql.000002", 0, f)
+	err = p.ParseFile("./var/mysql-bin.000002", 0, f)
 	c.Assert(err, IsNil)
 }

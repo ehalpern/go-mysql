@@ -50,7 +50,7 @@ func (s *schemaTestSuite) TestSchema(c *C) {
             d DECIMAL(2, 1),
             PRIMARY KEY(id2, id),
             UNIQUE (id1),
-            INDEX name_idx (name)
+            INDEX name_idx (name(200))
         ) ENGINE = INNODB;
     `
 

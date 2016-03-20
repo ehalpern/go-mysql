@@ -115,7 +115,7 @@ func (c *Canal) handleQueryEvent(e *replication.BinlogEvent) error {
 		switch query.Operation {
 		case replication.ADD:
 			table.AddColumn(query.Column, query.Type, query.Extra)
-			log.Info("Adding new column %v %v to %v.%v", query.Column, query.Type, schema, query.Table)
+			log.Infof("Adding new column %v %v to %v.%v", query.Column, query.Type, schema, query.Table)
 			break;
 		case replication.MODIFY:
 		case replication.DELETE:

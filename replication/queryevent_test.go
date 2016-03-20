@@ -10,8 +10,10 @@ import (
 func TestScanner(t *testing.T) {
 	tokens := scanString("ALTER TABLE t1 ADD c1")
 	assert.Equal(t, 5, len(tokens))
+	tokens = scanString("ALTER TABLE 't1' ADD 'c1'")
+	assert.Equal(t, 5, len(tokens), "tokens: %v", tokens)
 	tokens = scanString("ALTER TABLE 't1  1' ADD c1")
-	assert.Equal(t, 5, len(tokens))
+	assert.Equal(t, 5, len(tokens), "tokens: %v", tokens)
 	assert.Equal(t, "t1  1", tokens[2])
 	tokens = scanString("ALTER   TABLE t1\n ADD c1")
 	assert.Equal(t, 5, len(tokens))
@@ -27,13 +29,22 @@ func scanString(s string) []string {
 }
 
 func TestParseQuery(t *testing.T) {
-	q, err := ParseQuery("ALTER TABLE t1 ADD c1 VARCHAR(256)")
-	log.Infof("query: %v", q)
-	assert.Equal(t, "t1", q.Table)
-	assert.Equal(t, "ADD", q.Operation)
-	assert.Equal(t, "c1", q.Column)
-	assert.Equal(t, "VARCHAR(256)", q.Type)
+	variations := [...]string {
+		"ALTER TABLE t1 ADD c1 VARCHAR(256) DEFAULT",
+		"alter table t1 add c1 varchar(256) default",
+		"ALTER TABLE 't1' ADD 'c1' VARCHAR(256) DEFAULT",
+	}
+	for _, v := range variations {
+		q, err := ParseQuery(v)
+		assert.NoError(t, err)
+		log.Infof("query: %v", q)
+		assert.Equal(t, "t1", q.Table)
+		assert.Equal(t, AlterOp("ADD"), q.Operation)
+		assert.Equal(t, "c1", q.Column)
+		assert.Equal(t, "VARCHAR(256)", q.Type)
+		assert.Equal(t, "DEFAULT", q.Extra)
+	}
 
-	q, err = ParseQuery("UPDATE TABLE t1 ADD c1 VARCHAR(256)")
+	_, err := ParseQuery("UPDATE TABLE t1 ADD c1 VARCHAR(256)")
 	assert.Equal(t, ErrIgnored, err)
 }
