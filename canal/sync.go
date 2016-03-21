@@ -29,7 +29,7 @@ func (c *Canal) startSyncBinlog() error {
 			return errors.Trace(err)
 		} else if err == replication.ErrGetEventTimeout {
 			if timeout == 2 * originalTimeout {
-				log.Infof("Flushing event handlers since sync has gone idle")
+				log.Debugf("Flushing event handlers since sync has gone idle")
 				if err := c.flushEventHandlers(); err != nil {
 					log.Warnf("Error occurred during flush: %v", err)
 				}
@@ -45,14 +45,14 @@ func (c *Canal) startSyncBinlog() error {
 
 		forceSavePos = false
 
-		log.Infof("syncing %v", ev)
+		log.Debugf("Syncing %v", ev)
 		switch e := ev.Event.(type) {
 		case *replication.RotateEvent:
 			pos.Name = string(e.NextLogName)
 			pos.Pos = uint32(e.Position)
 			// r.ev <- pos
 			forceSavePos = true
-			log.Infof("rotate binlog to %v", pos)
+			log.Infof("Rotate binlog to %v", pos)
 		case *replication.RowsEvent:
 			// we only focus row based event
 			if err = c.handleRowsEvent(ev); err != nil {
@@ -65,7 +65,7 @@ func (c *Canal) startSyncBinlog() error {
 				return errors.Trace(err)
 			}
 		default:
-			log.Infof("Ignored event: %+v", e)
+			log.Debugf("Ignored event: %+v", e)
 		}
 		c.master.Update(pos.Name, pos.Pos)
 		c.master.Save(forceSavePos)
@@ -103,7 +103,7 @@ func (c *Canal) handleRowsEvent(e *replication.BinlogEvent) error {
 func (c *Canal) handleQueryEvent(e *replication.BinlogEvent) error {
 	ev := e.Event.(*replication.QueryEvent)
 	query, err := replication.ParseQuery(string(ev.Query))
-	log.Infof("query parsed: %v, %v", query, err)
+	log.Debugf("query parsed: %v, %v", query, err)
 	if err == replication.ErrIgnored {
 		return nil
 	} else {

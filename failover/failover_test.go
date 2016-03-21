@@ -35,7 +35,7 @@ func (s *failoverTestSuite) SetUpSuite(c *C) {
 	for i := 0; i < len(ports); i++ {
 		err = s.s[i].StopSlave()
 		if err != nil {
-			c.Fatal("Failed to stop slave; assuming it's not running so skipping test\n")
+			c.Skip("Failed to stop slave; assuming it's not running so skipping test\n")
 		} else {
 			err = s.s[i].ResetSlaveALL()
 			c.Assert(err, IsNil)

@@ -30,15 +30,17 @@ func NewQuotedScanner(r io.Reader) *bufio.Scanner {
 
 		// Does word start with a quote?
 		quote, width := utf8.DecodeRune(data[start:])
+		i := 0
 		if IsQuote(quote) {
-			log.Debugf("Quote detected '%c', advancing %d", quote, width)
-			start = start + width
+			log.Infof("Quote detected '%c'", quote)
+			i = i + width
 		} else {
 			quote = 0
+
 		}
 
 		// Scan until space, marking end of word.
-		for width, i := 0, start; i < len(data); i += width {
+		for width := 0; i < len(data); i += width {
 			var r rune
 			r, width = utf8.DecodeRune(data[i:])
 			if quote == 0 {
@@ -49,8 +51,9 @@ func NewQuotedScanner(r io.Reader) *bufio.Scanner {
 				// Look for ending quote
 				// BUG: need to implement escape handling
 				if r == quote {
-					log.Debugf("Found end quote %d chars after start", i)
-					return i + width, data[start:i], nil
+					log.Infof("Found end quote %d chars after start", i)
+					quote = 0
+					//return i + width, data[start:i], nil
 				}
 			}
 		}
@@ -101,7 +104,7 @@ func ParseQuery(query string) (*AlterTableQuery, error) {
 			return parseAlterTable(scanner)
 		}
 	default:
-		log.Infof("Ignoring query starting with: %v", scanner.Text())
+		log.Debugf("Ignoring query starting with: %v", scanner.Text())
 		return nil, ErrIgnored
 	}
 	return nil, errors.NotValidf("Unrecognized query '%v'", query)
@@ -109,20 +112,14 @@ func ParseQuery(query string) (*AlterTableQuery, error) {
 
 func parseAlterTable(scanner *bufio.Scanner) (*AlterTableQuery, error) {
 	query := new(AlterTableQuery)
-	scanner.Scan(); query.Table = scanner.Text()
-	// Handle <schema>.<table>. Note this doesn't properly handle case where table is
-	// quoted and '.' does not indicate a schema prefix
-	if split := strings.Split(query.Table, "."); len(split) == 2 {
-		query.Schema = split[0]
-		query.Table = split[1]
-	}
+	scanner.Scan(); query.Schema, query.Table = parseTableName(scanner.Text())
 	scanner.Scan(); query.Operation = AlterOp(strings.ToUpper(scanner.Text()))
 	switch query.Operation {
 	case ADD, MODIFY, DELETE:
 	default:
 		return nil, errors.NotValidf("Unrecognized ALTER operation '%v' in '%v'", query.Operation, scanner)
 	}
-	scanner.Scan(); query.Column = scanner.Text()
+	scanner.Scan(); query.Column = stripQuotes(scanner.Text())
 	if (query.Column == "") {
 		return nil, errors.NotValidf("Missing column name in '%v'", scanner)
 	}
@@ -133,3 +130,45 @@ func parseAlterTable(scanner *bufio.Scanner) (*AlterTableQuery, error) {
 	scanner.Scan(); query.Extra = strings.ToUpper(scanner.Text())
 	return query, nil
 }
+
+func stripQuotes(quoted string) string {
+	quote := quoted[0]
+	switch quote {
+	case '`', '"', '\'':
+		len := len(quoted)
+		if quoted[len - 1] == quote {
+			return quoted[1:len - 1]
+		} else {
+			return quoted[1:len]
+		}
+	default:
+		return quoted
+	}
+}
+
+// [`]table[`] -> nil, table
+// db.[`]table[`] -> db, table
+func parseTableName(name string) (string, string) {
+	dbAndTable := func (name string) (string, string) {
+		if split := strings.Split(name, "."); len(split) == 2 {
+			return split[0], split[1]
+		} else {
+			return "", name
+		}
+	}
+
+	backQuote := strings.Index(name, "`")
+	switch backQuote {
+		case -1:
+			// not quoted
+			return dbAndTable(name)
+		case 0:
+			// fully quoted
+			return "", stripQuotes(name)
+		default:
+			// table name quoted and prefixed by dbName
+			db, table := dbAndTable(name)
+			return db, stripQuotes(table)
+	}
+}
+

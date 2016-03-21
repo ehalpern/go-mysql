@@ -186,13 +186,11 @@ func (p *BinlogParser) parseEvent(h *EventHeader, data []byte) (Event, error) {
 		}
 	}
 
-	log.Debugf("parser decoding %v", h.EventType)
 	if err := e.Decode(data); err != nil {
-		log.Infof("parser decoding %v failed %v", h.EventType, err)
+		log.Infof("Parser decoding %v failed %v", h.EventType, err)
 		return nil, &EventError{h, err.Error(), data}
 	}
-	log.Debugf("parser decoding %v succeeded %v", h.EventType, e)
-	e.Dump(os.Stdout)
+	//e.Dump(os.Stdout)
 
 	if te, ok := e.(*TableMapEvent); ok {
 		p.tables[te.TableID] = te

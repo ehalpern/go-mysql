@@ -141,7 +141,7 @@ func (c *Canal) run() error {
 	log.Infof("Finished dump")
 	close(c.dumpDoneCh)
 
-	log.Infof("Staring sync")
+	log.Infof("Starting sync")
 	if err := c.startSyncBinlog(); err != nil {
 		if !c.isClosed() {
 			log.Errorf("Canal start sync binlog err: %v", err)
@@ -158,7 +158,7 @@ func (c *Canal) isClosed() bool {
 }
 
 func (c *Canal) Close() {
-	log.Infof("close canal")
+	log.Infof("Closing canal")
 
 	c.m.Lock()
 	defer c.m.Unlock()

@@ -36,7 +36,7 @@ func (s *canalTestSuite) SetUpSuite(c *C) {
 	s.c, err = NewCanal(cfg)
 	c.Assert(err, IsNil)
 
-	s.execute(c, "DROP TABLE test.canal_test")
+	s.execute(c, "DROP TABLE IF EXISTS test.canal_test")
 
 	sql := `
         CREATE TABLE IF NOT EXISTS test.canal_test (
@@ -75,7 +75,7 @@ type testRowsEventHandler struct {
 }
 
 func (h *testRowsEventHandler) Do(e *RowsEvent) error {
-	log.Infof("%s %v\n", e.Action, e.Rows)
+	log.Debugf("%s %v\n", e.Action, e.Rows)
 	return nil
 }
 

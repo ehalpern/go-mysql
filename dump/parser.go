@@ -55,7 +55,7 @@ func Parse(r io.Reader, h ParseHandler) error {
 
 		if !binlogParsed {
 			if m := binlogExp.FindAllStringSubmatch(line, -1); len(m) == 1 {
-				log.Infof("Parse binlog: %s", line)
+				log.Debugf("Parse binlog: %s", line)
 				name := m[0][1]
 				pos, err := strconv.ParseUint(m[0][2], 10, 64)
 				if err != nil {
