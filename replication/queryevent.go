@@ -30,7 +30,7 @@ func NewQuotedScanner(r io.Reader) *bufio.Scanner {
 
 		// Does word start with a quote?
 		quote, width := utf8.DecodeRune(data[start:])
-		i := 0
+		i := start
 		if IsQuote(quote) {
 			log.Infof("Quote detected '%c'", quote)
 			i = i + width
@@ -53,7 +53,6 @@ func NewQuotedScanner(r io.Reader) *bufio.Scanner {
 				if r == quote {
 					log.Infof("Found end quote %d chars after start", i)
 					quote = 0
-					//return i + width, data[start:i], nil
 				}
 			}
 		}

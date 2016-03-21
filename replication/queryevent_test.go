@@ -15,8 +15,8 @@ func TestScanner(t *testing.T) {
 	tokens = scanString("ALTER TABLE 't1  1' ADD c1")
 	assert.Equal(t, 5, len(tokens), "tokens: %v", tokens)
 	assert.Equal(t, "'t1  1'", tokens[2])
-	//tokens = scanString("ALTER   TABLE t1\n ADD c1")
-	//assert.Equal(t, 5, len(tokens))
+	tokens = scanString("ALTER   TABLE t1\n ADD c1")
+	assert.Equal(t, 5, len(tokens))
 }
 
 func scanString(s string) []string {
@@ -53,14 +53,14 @@ func TestParseQuery(t *testing.T) {
 	assert.Equal(t, "db1", q.Schema)
 	assert.Equal(t, "t1", q.Table)
 
-	/*
-	q, err = ParseQuery("ALTER TABLE db1.`t1 2` ADD c1 VARCHAR(256) DEFAULT")
-	assert.NoError(t, err)
-	assert.Equal(t, "db1", q.Schema)
-	assert.Equal(t, "t1 2", q.Table)
-    */
 	q, err = ParseQuery("ALTER TABLE `db1.t1` ADD c1 VARCHAR(256) DEFAULT")
 	assert.NoError(t, err)
 	assert.Equal(t, "", q.Schema)
 	assert.Equal(t, "db1.t1", q.Table)
+
+	// BUG: this doesn't work
+	//q, err = ParseQuery("ALTER TABLE db1.`t1 2` ADD c1 VARCHAR(256) DEFAULT")
+	//assert.NoError(t, err)
+	//assert.Equal(t, "db1", q.Schema)
+	//assert.Equal(t, "t1 2", q.Table)
 }
