@@ -206,10 +206,10 @@ func (c *Canal) ignoreTable(db string, table string) bool {
 }
 
 func (c *Canal) GetTable(db string, table string) (*schema.Table, error) {
-	if c.ignoreTable(db, table) {
-		log.Warnf("Table ignored: %s.%s", db, table)
-		return nil, errTableIgnored
-	}
+	//if c.ignoreTable(db, table) {
+	//	log.Warnf("Table ignored: %s.%s", db, table)
+	//	return nil, errTableIgnored
+	//}
 
 	key := fmt.Sprintf("%s.%s", db, table)
 	c.tableLock.Lock()
@@ -222,7 +222,7 @@ func (c *Canal) GetTable(db string, table string) (*schema.Table, error) {
 
 	t, err := schema.NewTable(c, db, table)
 	if err != nil {
-		return nil, err
+		return nil, errTableIgnored
 	}
 
 	c.tableLock.Lock()
