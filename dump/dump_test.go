@@ -117,6 +117,10 @@ func (h *testParseHandler) Data(schema string, table string, values []string) er
 	return nil
 }
 
+func (h *testParseHandler) Complete() error {
+	return nil
+}
+
 func (s *schemaTestSuite) TestParse(c *C) {
 	var buf bytes.Buffer
 

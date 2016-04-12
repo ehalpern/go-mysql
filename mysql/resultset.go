@@ -141,7 +141,7 @@ func (p RowData) ParseBinary(f []*Field) ([]interface{}, error) {
 			continue
 
 		case MYSQL_TYPE_DOUBLE:
-			data[i] = ParseBinaryFloat64(p[pos : pos+4])
+			data[i] = ParseBinaryFloat64(p[pos : pos+8])
 			pos += 8
 			continue
 

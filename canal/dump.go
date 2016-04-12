@@ -103,24 +103,24 @@ func (c *Canal) AddDumpIgnoreTables(db string, tables ...string) {
 func (c *Canal) tryDump() error {
 	if len(c.master.Name) > 0 {
 		// we will sync with binlog name and position
-		log.Infof("skip dump, use last binlog replication pos (%s, %d)", c.master.Name, c.master.Position)
+		log.Infof("Skip dump, use last binlog replication pos (%s, %d)", c.master.Name, c.master.Position)
 		return nil
 	}
 
 	if c.dumper == nil {
-		log.Info("skip dump, no mysqldump")
+		log.Info("Skip dump, no mysqldump")
 		return nil
 	}
 
 	h := &dumpParseHandler{c: c}
 
 	start := time.Now()
-	log.Info("try dump MySQL and parse")
+	log.Info("Start dump")
 	if err := c.dumper.DumpAndParse(h); err != nil {
 		return errors.Trace(err)
 	}
 
-	log.Infof("dump MySQL and parse OK, use %0.2f seconds, start binlog replication at (%s, %d)",
+	log.Infof("Dump finished in %0.2f seconds; start binlog replication at (%s, %d)",
 		time.Now().Sub(start).Seconds(), h.name, h.pos)
 
 	c.master.Update(h.name, uint32(h.pos))

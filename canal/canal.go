@@ -20,7 +20,10 @@ import (
 	"github.com/siddontang/go/sync2"
 )
 
-var errCanalClosed = errors.New("canal was closed")
+var (
+	errCanalClosed = errors.New("canal was closed")
+	errTableIgnored = errors.New("table is ignored")
+)
 
 // Canal can sync your MySQL data into everywhere, like Elasticsearch, Redis, etc...
 // MySQL must open row format for binlog
@@ -141,7 +144,7 @@ func (c *Canal) run() error {
 	log.Infof("Finished dump")
 	close(c.dumpDoneCh)
 
-	log.Infof("Staring sync")
+	log.Infof("Starting sync")
 	if err := c.startSyncBinlog(); err != nil {
 		if !c.isClosed() {
 			log.Errorf("Canal start sync binlog err: %v", err)
@@ -158,7 +161,7 @@ func (c *Canal) isClosed() bool {
 }
 
 func (c *Canal) Close() {
-	log.Infof("close canal")
+	log.Infof("Closing canal")
 
 	c.m.Lock()
 	defer c.m.Unlock()
@@ -190,7 +193,24 @@ func (c *Canal) WaitDumpDone() <-chan struct{} {
 	return c.dumpDoneCh
 }
 
+func (c *Canal) ignoreTable(db string, table string) bool {
+	if db != c.dumper.TableDB {
+		return true
+	}
+	for _, t := range c.dumper.Tables {
+		if table == t {
+			return false
+		}
+	}
+	return true
+}
+
 func (c *Canal) GetTable(db string, table string) (*schema.Table, error) {
+	//if c.ignoreTable(db, table) {
+	//	log.Warnf("Table ignored: %s.%s", db, table)
+	//	return nil, errTableIgnored
+	//}
+
 	key := fmt.Sprintf("%s.%s", db, table)
 	c.tableLock.Lock()
 	t, ok := c.tables[key]
@@ -202,7 +222,7 @@ func (c *Canal) GetTable(db string, table string) (*schema.Table, error) {
 
 	t, err := schema.NewTable(c, db, table)
 	if err != nil {
-		return nil, errors.Trace(err)
+		return nil, errTableIgnored
 	}
 
 	c.tableLock.Lock()
