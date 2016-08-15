@@ -109,7 +109,9 @@ func (c *Canal) handleQueryEvent(e *replication.BinlogEvent) error {
 	log.Debugf("query parsed: %v, %v", query, err)
 	if err == replication.ErrIgnored {
 		return nil
-	} else {
+	} else if err != nil {
+		log.Infof("failed to parse: %v, %v", string(ev.Query), err)
+        } else {
 		schema := string(ev.Schema)
 		if query.Schema != "" {
 			// Schema overridden in query
