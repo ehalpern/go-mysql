@@ -149,7 +149,7 @@ func (c *Canal) WaitUntilPos(pos mysql.Position, timeout int) error {
 		curpos := c.master.Pos()
 		select {
 		case <-timer.C:
-			return errors.Errorf("timed out waiting for position %v; only reached %v", pos)
+			return errors.Errorf("timed out waiting for position %v; only reached %v", pos, c.master.Pos())
 		default:
 			curpos = c.master.Pos()
 			if curpos.Compare(pos) >= 0 {
