@@ -11,12 +11,10 @@ import (
 
 func (c *Canal) startSyncBinlog() error {
 	pos := mysql.Position{c.master.Name, c.master.Position}
-
-	//log.Infof("start sync binlog at %v", pos)
-
+	log.Infof("Start sync'ing binlog from %v", pos)
 	s, err := c.syncer.StartSync(pos)
 	if err != nil {
-		return errors.Errorf("start sync replication at %v error %v", pos, err)
+		return errors.Errorf("Failed starting sync at %v: %v", pos, err)
 	}
 
 	originalTimeout := time.Second

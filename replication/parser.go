@@ -125,7 +125,7 @@ func (p *BinlogParser) parseHeader(data []byte) (*EventHeader, error) {
 
 func (p *BinlogParser) parseEvent(h *EventHeader, data []byte) (Event, error) {
 	var e Event
-
+	log.Debugf("Parsing %v", h.EventType)
 	if h.EventType == FORMAT_DESCRIPTION_EVENT {
 		p.format = &FormatDescriptionEvent{}
 		e = p.format
@@ -187,7 +187,7 @@ func (p *BinlogParser) parseEvent(h *EventHeader, data []byte) (Event, error) {
 	}
 
 	if err := e.Decode(data); err != nil {
-		log.Infof("Parser decoding %v failed %v", h.EventType, err)
+		log.Errorf("Parser decoding %v failed %v", h.EventType, err)
 		return nil, &EventError{h, err.Error(), data}
 	}
 	//e.Dump(os.Stdout)
@@ -196,10 +196,10 @@ func (p *BinlogParser) parseEvent(h *EventHeader, data []byte) (Event, error) {
 		p.tables[te.TableID] = te
 	}
 
-	//If MySQL restart, it may use the same table id for different tables.
-	//We must clear the table map before parsing new events.
-	//We have no better way to known whether the event is before or after restart,
-	//So we have to clear the table map on every rotate event.
+	// If MySQL restart, it may use the same table id for different tables.
+	// We must clear the table map before parsing new events.
+	// We have no better way to known whether the event is before or after restart,
+	// So we have to clear the table map on every rotate event.
 	if _, ok := e.(*RotateEvent); ok {
 		p.tables = make(map[uint64]*TableMapEvent)
 	}

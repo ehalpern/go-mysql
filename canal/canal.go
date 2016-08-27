@@ -138,21 +138,16 @@ func (c *Canal) run() error {
 	defer c.wg.Done()
 
 	if err := c.tryDump(); err != nil {
-		log.Errorf("canal dump mysql err: %v", err)
+		log.Errorf("Dump failed due to: %v", err)
 		return err
 	}
-	log.Infof("Finished dump")
 	close(c.dumpDoneCh)
-
-	log.Infof("Starting sync")
 	if err := c.startSyncBinlog(); err != nil {
 		if !c.isClosed() {
-			log.Errorf("Canal start sync binlog err: %v", err)
-
+			log.Errorf("Sync failed due to: %v", err)
 		}
 		return errors.Trace(err)
 	}
-
 	return nil
 }
 

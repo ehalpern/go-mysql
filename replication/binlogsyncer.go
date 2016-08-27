@@ -50,18 +50,12 @@ type BinlogSyncer struct {
 func NewBinlogSyncer(serverID uint32, flavor string) *BinlogSyncer {
 	b := new(BinlogSyncer)
 	b.flavor = flavor
-
 	b.serverID = serverID
-
 	b.masterID = 0
-
 	b.parser = NewBinlogParser()
-
 	b.running = false
 	b.semiSyncEnabled = false
-
 	b.stopCh = make(chan struct{}, 1)
-
 	return b
 }
 
@@ -249,9 +243,7 @@ func (b *BinlogSyncer) EnableSemiSync() error {
 func (b *BinlogSyncer) startDumpStream() *BinlogStreamer {
 	b.running = true
 	b.stopCh = make(chan struct{}, 1)
-
 	s := newBinlogStreamer()
-
 	b.wg.Add(1)
 	go b.onStream(s)
 	return s
@@ -264,17 +256,12 @@ func (b *BinlogSyncer) StartSync(pos Position) (*BinlogStreamer, error) {
 	if err := b.checkExec(); err != nil {
 		return nil, err
 	}
-
-	//always start from position 4
-	if pos.Pos < 4 {
+	if pos.Pos < 4 { //always start from position 4
 		pos.Pos = 4
 	}
-
-	err := b.writeBinglogDumpCommand(pos)
-	if err != nil {
+	if err := b.writeBinglogDumpCommand(pos); err != nil {
 		return nil, err
 	}
-
 	return b.startDumpStream(), nil
 }
 
@@ -558,7 +545,7 @@ func (b *BinlogSyncer) parseEvent(s *BinlogStreamer, data []byte) error {
 	}
 
 	if needStop {
-		return errors.New("sync is been closing...")
+		return errors.New("parseEvent called while sync closing")
 	}
 
 	return nil

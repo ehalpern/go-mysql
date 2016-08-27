@@ -13,6 +13,7 @@ import (
 	"github.com/juju/errors"
 	"github.com/satori/go.uuid"
 	. "github.com/ehalpern/go-mysql/mysql"
+	"github.com/siddontang/go/log"
 )
 
 const (
@@ -204,7 +205,11 @@ type RotateEvent struct {
 func (e *RotateEvent) Decode(data []byte) error {
 	e.Position = binary.LittleEndian.Uint64(data[0:])
 	e.NextLogName = data[8:]
-
+	if e.Position != 4 {
+		// FIXME: why is this happening?
+		log.Warnf("RotateEvent(%s, %v) doesn't specify expected offset 4; forcing to 4 to continue", string(e.NextLogName), e.Position)
+		e.Position = 4
+	}
 	return nil
 }
 

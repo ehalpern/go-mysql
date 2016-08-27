@@ -106,25 +106,21 @@ func (c *Canal) tryDump() error {
 		log.Infof("Skip dump, use last binlog replication pos (%s, %d)", c.master.Name, c.master.Position)
 		return nil
 	}
-
 	if c.dumper == nil {
-		log.Info("Skip dump, no mysqldump")
+		log.Errorf("Skip dump, no dumper provided")
 		return nil
 	}
 
 	h := &dumpParseHandler{c: c}
-
 	start := time.Now()
 	log.Info("Start dump")
 	if err := c.dumper.DumpAndParse(h); err != nil {
 		return errors.Trace(err)
 	}
 
-	log.Infof("Dump finished in %0.2f seconds; start binlog replication at (%s, %d)",
-		time.Now().Sub(start).Seconds(), h.name, h.pos)
+	log.Infof("Dump completed in %0.2f seconds", time.Now().Sub(start).Seconds())
 
 	c.master.Update(h.name, uint32(h.pos))
 	c.master.Save(true)
-
 	return nil
 }
