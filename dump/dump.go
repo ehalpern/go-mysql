@@ -225,6 +225,8 @@ func (d *Dumper) mydumper(w io.Writer) error {
 		cmd.Stdout = os.Stdout
 		log.Infof("Executing dump: %+v", cmd)
 		if err := cmd.Run(); err == nil {
+			f := os.NewFile(0, dumpDir + "/complete"); f.Close()
+
 			err = d.parseDumpOuput(dumpDir, w)
 		}
 		return err
